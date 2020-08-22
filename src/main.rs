@@ -1,27 +1,24 @@
 use std::io;
+use std::process;
 
 fn main() {
     println!("Welcome ... What is your name?");
 
     let mut name = String::new();
 
-    io::stdin().read_line(&mut name);
+    io::stdin().read_line(&mut name).unwrap();
     welcome(&name);
+    
+    loop {
+        println!("Please insert a number:");
+        let a = read_user_input();
 
-    println!("Please insert a number:");
-    let mut first_number = String::new();
- 
-    io::stdin().read_line(&mut first_number);
-    let a:u32 = first_number.trim().parse().unwrap();
-
-    println!("Please insert a second number:");
-    let mut second_number = String::new();
-
-    io::stdin().read_line(&mut second_number);
-    let b:u32 = second_number.trim().parse().unwrap();
-
-    let result = sum(a,b);
-    println!("The sum of {} and {} is {}!", a, b, result);
+        println!("Please insert another number:");
+        let b = read_user_input();
+    
+        let result = sum(a,b);
+        println!("The sum of {} and {} is {}!", a, b, result);
+    }
 }
 
 fn welcome(first: &String){
@@ -30,4 +27,24 @@ fn welcome(first: &String){
 
 fn sum(a: u32, b: u32) -> u32 {
     a + b
+}
+
+fn read_user_input() -> u32 {
+
+    let mut input = String::new();
+ 
+    io::stdin().read_line(&mut input).unwrap();
+    
+    let digit:u32;
+    
+    match input.trim().parse(){
+        Ok(val) => {
+            digit = val;
+        },
+        Err(_err) => {
+            println!("This is not a valid input...expected a number.");
+            process::exit(1);
+        }
+    };
+    digit
 }
