@@ -1,0 +1,9 @@
+[package]
+name = "breakout_pong"
+version = "0.1.0"
+edition = "2021" # this needs to be 2021, or you need to set "resolver=2"
+
+[dependencies]
+bevy = { version = "0.6.0", features = ["dynamic"] } # make sure this is the latest version
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
