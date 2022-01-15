@@ -4,19 +4,27 @@ use bevy::{
     sprite::collide_aabb::{collide, Collision},
 };
 
-/// An implementation of the classic game "Breakout"
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+enum GameState {
+    Playing,
+    Pause,
+}
+
+/// A mash-up implementation of the classic games "Breakout" and "Pong"
 const TIME_STEP: f32 = 1.0 / 60.0;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_state(GameState::Playing)
         .insert_resource(Scoreboard {
             score1: 0,
             score2: 0,
         })
         .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
         .add_startup_system(setup)
+        // systems to run only while Playing
         .add_system_set(
-            SystemSet::new()
+            SystemSet::on_update(GameState::Playing)
                 .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
                 .with_system(paddle1_movement_system)
                 .with_system(paddle2_movement_system)
@@ -24,6 +32,7 @@ fn main() {
                 .with_system(ball_movement_system),
         )
         .add_system(scoreboard_system)
+        .add_system(space_to_pause)
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
@@ -355,15 +364,40 @@ fn paddle2_movement_system(
     translation.y = translation.y.min(220.0).max(-220.0);
 }
 
-fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>) {
-    let (ball, mut transform) = ball_query.single_mut();
-    transform.translation += ball.velocity * TIME_STEP;
+fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>, game_state: Res<State<GameState>>,) {
+    match game_state.current() {
+        GameState::Playing => {
+            let (ball, mut transform) = ball_query.single_mut();
+            transform.translation += ball.velocity * TIME_STEP;
+        }
+        GameState::Pause => {
+
+        }
+    }
 }
 
 fn scoreboard_system(scoreboard: Res<Scoreboard>, mut query: Query<&mut Text>) {
     let mut text = query.single_mut();
     text.sections[1].value = format!("{}", scoreboard.score1);
     text.sections[3].value = format!("{}", scoreboard.score2);
+}
+
+fn space_to_pause(
+    mut keys: ResMut<Input<KeyCode>>,
+    mut game_state: ResMut<State<GameState>>,
+) {
+    if keys.just_pressed(KeyCode::Space) {
+        match game_state.current() {
+            GameState::Playing => {
+                game_state.push(GameState::Pause).unwrap();
+            }
+            GameState::Pause => {
+                game_state.pop().unwrap();
+            }
+        }
+        println!("{:?}", *game_state.current());
+        keys.reset(KeyCode::Space);
+    }
 }
 
 fn ball_collision_system(
