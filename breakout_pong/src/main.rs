@@ -4,8 +4,13 @@ use bevy::{
     sprite::collide_aabb::{collide, Collision},
 };
 
+/// Stage for systems
+pub const GAME_STATE_STAGE: &str = "game_state_stage";
+
+/// Game States
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 enum GameState {
+    Menu,
     Playing,
     Pause,
 }
@@ -15,7 +20,14 @@ const TIME_STEP: f32 = 1.0 / 60.0;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_state(GameState::Playing)
+        .add_state(GameState::Menu)
+
+        .add_system_set(SystemSet::on_enter(GameState::Menu).with_system(setup_menu))
+        .add_system_set(SystemSet::on_update(GameState::Menu).with_system(menu))
+        .add_system_set(SystemSet::on_exit(GameState::Menu).with_system(cleanup_menu))
+        .add_system_set(SystemSet::on_enter(GameState::Playing).with_system(setup))
+
+
         .insert_resource(Scoreboard {
             score1: 0,
             score2: 0,
@@ -36,6 +48,79 @@ fn main() {
         .add_system(bevy::input::system::exit_on_esc_system)
         .run();
 }
+
+struct MenuData {
+    button_entity: Entity,
+}
+
+const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
+
+fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // ui camera
+    commands.spawn_bundle(UiCameraBundle::default());
+    let button_entity = commands
+        .spawn_bundle(ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                // center button
+                margin: Rect::all(Val::Auto),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..Default::default()
+            },
+            color: NORMAL_BUTTON.into(),
+            ..Default::default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle {
+                text: Text::with_section(
+                    "Play",
+                    TextStyle {
+                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                        font_size: 40.0,
+                        color: Color::rgb(0.9, 0.9, 0.9),
+                    },
+                    Default::default(),
+                ),
+                ..Default::default()
+            });
+        })
+        .id();
+    commands.insert_resource(MenuData { button_entity });
+}
+
+
+fn menu(
+    mut state: ResMut<State<GameState>>,
+    mut interaction_query: Query<
+        (&Interaction, &mut UiColor),
+        (Changed<Interaction>, With<Button>),
+    >,
+) {
+    for (interaction, mut color) in interaction_query.iter_mut() {
+        match *interaction {
+            Interaction::Clicked => {
+                *color = PRESSED_BUTTON.into();
+                state.set(GameState::Playing).unwrap();
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+            }
+        }
+    }
+}
+
+fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
+    commands.entity(menu_data.button_entity).despawn_recursive();
+}
+
 
 #[derive(Component)]
 struct Paddle1 {
@@ -373,6 +458,9 @@ fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>, game_sta
         GameState::Pause => {
 
         }
+        GameState::Menu => {
+
+        }
     }
 }
 
@@ -393,6 +481,9 @@ fn space_to_pause(
             }
             GameState::Pause => {
                 game_state.pop().unwrap();
+            }
+            GameState::Menu => {
+            
             }
         }
         println!("{:?}", *game_state.current());
