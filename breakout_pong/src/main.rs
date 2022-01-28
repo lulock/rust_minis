@@ -142,15 +142,6 @@ fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
     commands.entity(menu_data.button_entity).despawn_recursive();
 }
 
-// fn setup_game(mut commands: Commands, asset_server: Res<AssetServer>) {
-//     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-//     commands.spawn_bundle(SpriteBundle {
-//         texture: asset_server.load("branding/icon.png"),
-//         ..Default::default()
-//     });
-// }
-
-
 #[derive(Component)]
 struct Paddle1 {
     speed: f32,
@@ -456,39 +447,46 @@ fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>) {
     transform.translation += ball.velocity * TIME_STEP;
 }
 
-const SPEED: f32 = 100.0;
-fn movement(
-    time: Res<Time>,
-    input: Res<Input<KeyCode>>,
-    mut query: Query<&mut Transform, With<Sprite>>,
+// const SPEED: f32 = 100.0;
+// fn movement(
+//     time: Res<Time>,
+//     input: Res<Input<KeyCode>>,
+//     mut query: Query<&mut Transform, With<Sprite>>,
+// ) {
+//     for mut transform in query.iter_mut() {
+//         let mut direction = Vec3::ZERO;
+//         if input.pressed(KeyCode::Left) {
+//             direction.x -= 1.0;
+//         }
+//         if input.pressed(KeyCode::Right) {
+//             direction.x += 1.0;
+//         }
+//         if input.pressed(KeyCode::Up) {
+//             direction.y += 1.0;
+//         }
+//         if input.pressed(KeyCode::Down) {
+//             direction.y -= 1.0;
+//         }
+
+//         if direction != Vec3::ZERO {
+//             transform.translation += direction.normalize() * SPEED * time.delta_seconds();
+//         }
+//     }
+// }
+
+// fn change_color(time: Res<Time>, mut query: Query<&mut Sprite>) {
+//     for mut sprite in query.iter_mut() {
+//         sprite
+//             .color
+//             .set_b((time.seconds_since_startup() * 0.5).sin() as f32 + 2.0);
+//     }
+// }
+
+fn change_color(
+    time: Res<Time>, mut ball_query: Query<(&mut Ball, &mut Sprite)>
 ) {
-    for mut transform in query.iter_mut() {
-        let mut direction = Vec3::ZERO;
-        if input.pressed(KeyCode::Left) {
-            direction.x -= 1.0;
-        }
-        if input.pressed(KeyCode::Right) {
-            direction.x += 1.0;
-        }
-        if input.pressed(KeyCode::Up) {
-            direction.y += 1.0;
-        }
-        if input.pressed(KeyCode::Down) {
-            direction.y -= 1.0;
-        }
-
-        if direction != Vec3::ZERO {
-            transform.translation += direction.normalize() * SPEED * time.delta_seconds();
-        }
-    }
-}
-
-fn change_color(time: Res<Time>, mut query: Query<&mut Sprite>) {
-    for mut sprite in query.iter_mut() {
-        sprite
-            .color
-            .set_b((time.seconds_since_startup() * 0.5).sin() as f32 + 2.0);
-    }
+    let (mut _ball, mut ball_sprite) = ball_query.single_mut();
+    ball_sprite.color.set_b((time.seconds_since_startup() * 0.5).sin() as f32 + 2.0);
 }
 
 fn ball_collision_system(
