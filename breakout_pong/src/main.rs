@@ -2,6 +2,7 @@ use bevy::{
     core::FixedTimestep,
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
 };
 
 /// This example illustrates how to use [`States`] to control transitioning from a `Menu` state to
@@ -11,13 +12,15 @@ use bevy::{
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_state(AppState::Menu)
         .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
         .add_system_set(SystemSet::on_enter(AppState::Menu).with_system(setup_menu))
         .add_system_set(SystemSet::on_update(AppState::Menu).with_system(menu))
         .add_system_set(SystemSet::on_exit(AppState::Menu).with_system(cleanup_menu))
 
-        .add_system_set(SystemSet::on_enter(AppState::Pause).with_system(setup_menu))
+        .add_system_set(SystemSet::on_enter(AppState::Pause).with_system(setup_pause_menu))
         .add_system_set(SystemSet::on_update(AppState::Pause).with_system(pause))
         .add_system_set(SystemSet::on_exit(AppState::Pause).with_system(cleanup_menu))
 
@@ -25,7 +28,6 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
                 // .with_system(movement)
-                // .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
                 .with_system(paddle1_movement_system)
                 .with_system(paddle2_movement_system)
                 // .with_system(scoreboard_system)
@@ -35,7 +37,11 @@ fn main() {
         )
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(space_to_pause)
-
+        // .add_system_set(
+        //     SystemSet::new()
+        //         // This prints out "hello world" once every second
+        //         .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
+        // )
         .run();
 }
 
@@ -56,7 +62,10 @@ const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
-fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_menu(
+    mut commands: Commands, 
+    asset_server: Res<AssetServer>
+) {
     // ui camera
     commands.spawn_bundle(UiCameraBundle::default());
     let button_entity = commands
@@ -78,6 +87,45 @@ fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
             parent.spawn_bundle(TextBundle {
                 text: Text::with_section(
                     "Play",
+                    TextStyle {
+                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                        font_size: 40.0,
+                        color: Color::rgb(0.9, 0.9, 0.9),
+                    },
+                    Default::default(),
+                ),
+                ..Default::default()
+            });
+        })
+        .id();
+    commands.insert_resource(MenuData { button_entity });
+}
+
+fn setup_pause_menu(
+    mut commands: Commands, 
+    asset_server: Res<AssetServer>
+) {
+    // ui camera
+    commands.spawn_bundle(UiCameraBundle::default());
+    let button_entity = commands
+        .spawn_bundle(ButtonBundle {
+            style: Style {
+                size: Size::new(Val::Px(150.0), Val::Px(65.0)),
+                // center button
+                margin: Rect::all(Val::Auto),
+                // horizontally center child text
+                justify_content: JustifyContent::Center,
+                // vertically center child text
+                align_items: AlignItems::Center,
+                ..Default::default()
+            },
+            color: NORMAL_BUTTON.into(),
+            ..Default::default()
+        })
+        .with_children(|parent| {
+            parent.spawn_bundle(TextBundle {
+                text: Text::with_section(
+                    "Resume",
                     TextStyle {
                         font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                         font_size: 40.0,
@@ -114,12 +162,13 @@ fn menu(
         }
     }
 }
+
 fn pause(
     mut state: ResMut<State<AppState>>,
     mut interaction_query: Query<
         (&Interaction, &mut UiColor),
         (Changed<Interaction>, With<Button>),
-    >,
+    >
 ) {
     for (interaction, mut color) in interaction_query.iter_mut() {
         match *interaction {
@@ -136,6 +185,15 @@ fn pause(
             }
         }
     }
+
+}
+
+
+
+fn scoreboard_system(scoreboard: Res<Scoreboard>, mut query: Query<&mut Text>) {
+    let mut text = query.single_mut();
+    text.sections[1].value = format!("{}", scoreboard.score1);
+    text.sections[3].value = format!("{}", scoreboard.score2);
 }
 
 fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
@@ -446,33 +504,6 @@ fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>) {
     let (ball, mut transform) = ball_query.single_mut();
     transform.translation += ball.velocity * TIME_STEP;
 }
-
-// const SPEED: f32 = 100.0;
-// fn movement(
-//     time: Res<Time>,
-//     input: Res<Input<KeyCode>>,
-//     mut query: Query<&mut Transform, With<Sprite>>,
-// ) {
-//     for mut transform in query.iter_mut() {
-//         let mut direction = Vec3::ZERO;
-//         if input.pressed(KeyCode::Left) {
-//             direction.x -= 1.0;
-//         }
-//         if input.pressed(KeyCode::Right) {
-//             direction.x += 1.0;
-//         }
-//         if input.pressed(KeyCode::Up) {
-//             direction.y += 1.0;
-//         }
-//         if input.pressed(KeyCode::Down) {
-//             direction.y -= 1.0;
-//         }
-
-//         if direction != Vec3::ZERO {
-//             transform.translation += direction.normalize() * SPEED * time.delta_seconds();
-//         }
-//     }
-// }
 
 fn change_color(
     time: Res<Time>, 
