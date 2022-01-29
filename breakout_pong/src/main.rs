@@ -1,5 +1,4 @@
 use bevy::{
-    core::FixedTimestep,
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
@@ -20,9 +19,9 @@ fn main() {
         .add_system_set(SystemSet::on_update(AppState::Menu).with_system(menu))
         .add_system_set(SystemSet::on_exit(AppState::Menu).with_system(cleanup_menu))
 
-        .add_system_set(SystemSet::on_enter(AppState::Pause).with_system(setup_pause_menu))
-        .add_system_set(SystemSet::on_update(AppState::Pause).with_system(pause))
-        .add_system_set(SystemSet::on_exit(AppState::Pause).with_system(cleanup_menu))
+        // .add_system_set(SystemSet::on_enter(AppState::Pause).with_system(setup_pause_menu))
+        // .add_system_set(SystemSet::on_update(AppState::Pause).with_system(pause))
+        // .add_system_set(SystemSet::on_exit(AppState::Pause).with_system(cleanup_menu))
 
         .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(setup))
         .add_system_set(
@@ -35,8 +34,8 @@ fn main() {
                 .with_system(ball_collision_system)
                 .with_system(change_color),
         )
-        .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(space_to_pause)
+        .add_system(bevy::input::system::exit_on_esc_system)
         // .add_system_set(
         //     SystemSet::new()
         //         // This prints out "hello world" once every second
@@ -196,8 +195,21 @@ fn scoreboard_system(scoreboard: Res<Scoreboard>, mut query: Query<&mut Text>) {
     text.sections[3].value = format!("{}", scoreboard.score2);
 }
 
-fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
+fn cleanup_menu(
+    mut commands: Commands, 
+    menu_data: Res<MenuData>,
+    entities: Query<Entity, Without<Camera>>
+) {
     commands.entity(menu_data.button_entity).despawn_recursive();
+    println!("{:?}", entities.iter().count());
+
+}
+
+// remove all entities that are not a camera
+fn teardown(mut commands: Commands, entities: Query<Entity, Without<Camera>>) {
+    for entity in entities.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
 }
 
 #[derive(Component)]
