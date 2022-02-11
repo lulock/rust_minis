@@ -1,26 +1,27 @@
 use bevy::{
     core::FixedTimestep,
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
 };
 
 /// This example illustrates how to use [`States`] to control transitioning from a `Menu` state to
 /// an `InGame` state.
-/// 
-/// 
+///
+///
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .add_state(AppState::Menu)
         .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
         .add_system_set(SystemSet::on_enter(AppState::Menu).with_system(setup_menu))
         .add_system_set(SystemSet::on_update(AppState::Menu).with_system(menu))
         .add_system_set(SystemSet::on_exit(AppState::Menu).with_system(cleanup_menu))
-
-        .add_system_set(SystemSet::on_enter(AppState::Pause).with_system(setup_menu))
-        .add_system_set(SystemSet::on_update(AppState::Pause).with_system(pause))
-        .add_system_set(SystemSet::on_exit(AppState::Pause).with_system(cleanup_menu))
-
+        // .add_system_set(SystemSet::on_enter(AppState::Pause).with_system(setup_menu))
+        // .add_system_set(SystemSet::on_update(AppState::Pause).with_system(pause))
+        // .add_system_set(SystemSet::on_exit(AppState::Pause).with_system(cleanup_menu))
         .add_system_set(SystemSet::on_enter(AppState::InGame).with_system(setup))
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
@@ -28,14 +29,13 @@ fn main() {
                 // .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
                 .with_system(paddle1_movement_system)
                 .with_system(paddle2_movement_system)
-                // .with_system(scoreboard_system)
+                .with_system(scoreboard_system)
                 .with_system(ball_movement_system)
                 .with_system(ball_collision_system)
                 .with_system(change_color),
         )
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(space_to_pause)
-
         .run();
 }
 
@@ -114,29 +114,6 @@ fn menu(
         }
     }
 }
-fn pause(
-    mut state: ResMut<State<AppState>>,
-    mut interaction_query: Query<
-        (&Interaction, &mut UiColor),
-        (Changed<Interaction>, With<Button>),
-    >,
-) {
-    for (interaction, mut color) in interaction_query.iter_mut() {
-        match *interaction {
-            Interaction::Clicked => {
-                *color = PRESSED_BUTTON.into();
-                state.pop().unwrap();
-                // state.set(AppState::InGame).unwrap();
-            }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
-        }
-    }
-}
 
 fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
     commands.entity(menu_data.button_entity).despawn_recursive();
@@ -173,6 +150,11 @@ struct Scoreboard {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Add the game's entities to our world
 
+    // scoreboard
+    commands.insert_resource(Scoreboard {
+        score1: 0,
+        score2: 0,
+    });
     // cameras
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
@@ -436,11 +418,15 @@ fn paddle2_movement_system(
     translation.y = translation.y.min(220.0).max(-220.0);
 }
 
-// fn scoreboard_system(scoreboard: Res<Scoreboard>, mut query: Query<&mut Text>) {
-//     let mut text = query.single_mut();
-//     text.sections[1].value = format!("{}", scoreboard.score1);
-//     text.sections[3].value = format!("{}", scoreboard.score2);
-// }
+fn scoreboard_system(scoreboard: ResMut<Scoreboard>, mut query: Query<&mut Text>) {
+    let mut text = query.single_mut();
+    // for text in query.iter_mut() {
+    //     println!("{:#?}", text);
+    // }
+
+    text.sections[1].value = format!("{}", scoreboard.score1);
+    text.sections[3].value = format!("{}", scoreboard.score2);
+}
 
 fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>) {
     let (ball, mut transform) = ball_query.single_mut();
@@ -475,17 +461,19 @@ fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>) {
 // }
 
 fn change_color(
-    time: Res<Time>, 
+    time: Res<Time>,
     // mut ball_query: Query<(&mut Sprite)>,
-    mut query: Query<&mut Sprite, With<Ball>>
+    mut query: Query<&mut Sprite, With<Ball>>,
 ) {
     let mut ball_sprite = query.single_mut();
-    ball_sprite.color.set_b((time.seconds_since_startup() * 0.5).sin() as f32 + 2.0);
+    ball_sprite
+        .color
+        .set_b((time.seconds_since_startup() * 0.5).sin() as f32 + 2.0);
 }
 
 fn ball_collision_system(
     mut commands: Commands,
-    // mut scoreboard: ResMut<Scoreboard>,
+    mut scoreboard: ResMut<Scoreboard>,
     mut ball_query: Query<(&mut Ball, &Transform)>,
     collider_query: Query<(Entity, &Collider, &Transform)>,
 ) {
@@ -504,11 +492,11 @@ fn ball_collision_system(
         if let Some(collision) = collision {
             // scorable colliders should be despawned and increment the scoreboard on collision
             if let Collider::Scorable1 = *collider {
-                // scoreboard.score1 += 1;
+                scoreboard.score1 += 1;
                 commands.entity(collider_entity).despawn();
             }
             if let Collider::Scorable2 = *collider {
-                // scoreboard.score2 += 1;
+                scoreboard.score2 += 1;
                 commands.entity(collider_entity).despawn();
             }
 
@@ -544,10 +532,7 @@ fn ball_collision_system(
     }
 }
 
-fn space_to_pause(
-    mut keys: ResMut<Input<KeyCode>>,
-    mut game_state: ResMut<State<AppState>>,
-) {
+fn space_to_pause(mut keys: ResMut<Input<KeyCode>>, mut game_state: ResMut<State<AppState>>) {
     if keys.just_pressed(KeyCode::Space) {
         match game_state.current() {
             AppState::InGame => {
@@ -556,10 +541,7 @@ fn space_to_pause(
             AppState::Pause => {
                 game_state.pop().unwrap();
             }
-            AppState::Menu => {
-
-            }
-
+            AppState::Menu => {}
         }
         println!("{:?}", *game_state.current());
         keys.reset(KeyCode::Space);
