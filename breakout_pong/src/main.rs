@@ -17,7 +17,11 @@ fn main() {
         .add_state(AppState::Menu)
         .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
         .add_system_set(SystemSet::on_enter(AppState::Menu).with_system(setup_menu))
-        .add_system_set(SystemSet::on_update(AppState::Menu).with_system(menu))
+        .add_system_set(
+            SystemSet::on_update(AppState::Menu)
+                .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
+                .with_system(menu),
+        )
         .add_system_set(SystemSet::on_exit(AppState::Menu).with_system(cleanup_menu))
         // .add_system_set(SystemSet::on_enter(AppState::Pause).with_system(setup_menu))
         // .add_system_set(SystemSet::on_update(AppState::Pause).with_system(pause))
@@ -26,7 +30,6 @@ fn main() {
         .add_system_set(
             SystemSet::on_update(AppState::InGame)
                 // .with_system(movement)
-                // .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))
                 .with_system(paddle1_movement_system)
                 .with_system(paddle2_movement_system)
                 .with_system(scoreboard_system)
