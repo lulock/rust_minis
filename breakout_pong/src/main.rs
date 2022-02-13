@@ -7,8 +7,9 @@ use bevy::{
 
 /// This example illustrates how to use [`States`] to control transitioning from a `Menu` state to
 /// an `InGame` state.
-///
-///
+
+static NUM_BRICKS: i32 = 7;
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
@@ -329,9 +330,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .insert(Collider::Solid);
 
     // Add bricks
-    let num_bricks = 7;
     let space = 84 as f32;
-    for row in 0..num_bricks {
+    for row in 0..NUM_BRICKS {
         // right
         commands
             .spawn_bundle(SpriteBundle {
@@ -354,9 +354,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 
     // Add bricks
-    let num_bricks = 7;
-    let space = 84 as f32;
-    for row in 0..num_bricks {
+    for row in 0..NUM_BRICKS {
         // left
         commands
             .spawn_bundle(SpriteBundle {
@@ -436,33 +434,6 @@ fn ball_movement_system(mut ball_query: Query<(&Ball, &mut Transform)>) {
     transform.translation += ball.velocity * TIME_STEP;
 }
 
-// const SPEED: f32 = 100.0;
-// fn movement(
-//     time: Res<Time>,
-//     input: Res<Input<KeyCode>>,
-//     mut query: Query<&mut Transform, With<Sprite>>,
-// ) {
-//     for mut transform in query.iter_mut() {
-//         let mut direction = Vec3::ZERO;
-//         if input.pressed(KeyCode::Left) {
-//             direction.x -= 1.0;
-//         }
-//         if input.pressed(KeyCode::Right) {
-//             direction.x += 1.0;
-//         }
-//         if input.pressed(KeyCode::Up) {
-//             direction.y += 1.0;
-//         }
-//         if input.pressed(KeyCode::Down) {
-//             direction.y -= 1.0;
-//         }
-
-//         if direction != Vec3::ZERO {
-//             transform.translation += direction.normalize() * SPEED * time.delta_seconds();
-//         }
-//     }
-// }
-
 fn change_color(
     time: Res<Time>,
     // mut ball_query: Query<(&mut Sprite)>,
@@ -497,10 +468,16 @@ fn ball_collision_system(
             if let Collider::Scorable1 = *collider {
                 scoreboard.score1 += 1;
                 commands.entity(collider_entity).despawn();
+                if NUM_BRICKS as usize == scoreboard.score1 {
+                    println!("Player 1 WINS!")
+                }
             }
             if let Collider::Scorable2 = *collider {
                 scoreboard.score2 += 1;
                 commands.entity(collider_entity).despawn();
+                if NUM_BRICKS as usize == scoreboard.score2 {
+                    println!("Player 2 WINS!")
+                }
             }
 
             // reflect the ball when it collides
