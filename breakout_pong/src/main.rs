@@ -1,6 +1,7 @@
 use bevy::{
     core::FixedTimestep,
     diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    math::{const_vec2},
     prelude::*,
     sprite::collide_aabb::{collide, Collision},
 };
@@ -9,6 +10,7 @@ use bevy::{
 /// an `InGame` state.
 
 static NUM_BRICKS: i32 = 7;
+const BOUNDS: Vec2 = const_vec2!([900.0, 600.0]);
 
 fn main() {
     App::new()
@@ -36,7 +38,7 @@ fn main() {
                 .with_system(scoreboard_system)
                 .with_system(ball_movement_system)
                 .with_system(ball_collision_system)
-                .with_system(change_color),
+                .with_system(change_color)
         )
         .add_system(bevy::input::system::exit_on_esc_system)
         .add_system(space_to_pause)
@@ -197,11 +199,13 @@ fn teardown(mut commands: Commands, entities: Query<Entity, Without<Camera>>) {
 #[derive(Component)]
 struct Paddle1 {
     speed: f32,
+    rotation_speed: f32,
 }
 
 #[derive(Component)]
 struct Paddle2 {
     speed: f32,
+    rotation_speed: f32,
 }
 
 #[derive(Component)]
@@ -238,32 +242,40 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn_bundle(SpriteBundle {
             transform: Transform {
                 translation: Vec3::new(400.0, 200.0, 0.0),
-                scale: Vec3::new(20.0, 120.0, 0.0),
+                scale: Vec3::new(1f32, 1f32, 1f32),
                 ..Default::default()
             },
             sprite: Sprite {
                 color: Color::rgb(190.0 / 255.0, 124.0 / 255.0, 230.0 / 255.0),
+                custom_size: Some(Vec2::new(20.0, 120.0)),
                 ..Default::default()
             },
             ..Default::default()
         })
-        .insert(Paddle1 { speed: 500.0 })
+        .insert(Paddle1 { 
+            speed: 500.0, 
+            rotation_speed: f32::to_radians(360.0) // degrees per second 
+        })
         .insert(Collider::Paddle);
     // paddle 2
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
                 translation: Vec3::new(-400.0, -200.0, 0.0),
-                scale: Vec3::new(20.0, 120.0, 0.0),
+                scale: Vec3::new(1f32, 1f32, 1f32),
                 ..Default::default()
             },
             sprite: Sprite {
                 color: Color::rgb(130.0 / 255.0, 90.0 / 255.0, 195.0 / 255.0),
+                custom_size: Some(Vec2::new(20.0, 120.0)),
                 ..Default::default()
             },
             ..Default::default()
         })
-        .insert(Paddle2 { speed: 500.0 })
+        .insert(Paddle2 { 
+            speed: 500.0, 
+            rotation_speed: f32::to_radians(360.0) // degrees per second 
+        })
         .insert(Collider::Paddle);
     // .insert(Collider::Paddle2);
     // ball
@@ -337,18 +349,19 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Add walls
     let wall_color = Color::rgb(0.8, 0.8, 0.8);
     let wall_thickness = 10.0;
-    let bounds = Vec2::new(900.0, 600.0);
 
     // left
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
-                translation: Vec3::new(-bounds.x / 2.0, 0.0, 0.0),
-                scale: Vec3::new(wall_thickness, bounds.y + wall_thickness, 1.0),
+                translation: Vec3::new(-BOUNDS.x / 2.0, 0.0, 0.0),
+                // scale: Vec3::new(wall_thickness, BOUNDS.y + wall_thickness, 1.0),
+                scale: Vec3::new(1f32, 1f32, 1f32),
                 ..Default::default()
             },
             sprite: Sprite {
                 color: wall_color,
+                custom_size: Some(Vec2::new(wall_thickness, BOUNDS.y + wall_thickness)),
                 ..Default::default()
             },
             ..Default::default()
@@ -358,12 +371,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
-                translation: Vec3::new(bounds.x / 2.0, 0.0, 0.0),
-                scale: Vec3::new(wall_thickness, bounds.y + wall_thickness, 1.0),
+                translation: Vec3::new(BOUNDS.x / 2.0, 0.0, 0.0),
+                // scale: Vec3::new(wall_thickness, BOUNDS.y + wall_thickness, 1.0),
+                scale: Vec3::new(1f32, 1f32, 1f32),
                 ..Default::default()
             },
             sprite: Sprite {
                 color: wall_color,
+                custom_size: Some(Vec2::new(wall_thickness, BOUNDS.y + wall_thickness)),
                 ..Default::default()
             },
             ..Default::default()
@@ -373,12 +388,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
-                translation: Vec3::new(0.0, -bounds.y / 2.0, 0.0),
-                scale: Vec3::new(bounds.x + wall_thickness, wall_thickness, 1.0),
+                translation: Vec3::new(0.0, -BOUNDS.y / 2.0, 0.0),
+                scale: Vec3::new(1f32, 1f32, 1f32),
                 ..Default::default()
             },
             sprite: Sprite {
                 color: wall_color,
+                custom_size: Some(Vec2::new(BOUNDS.x + wall_thickness, wall_thickness)),
                 ..Default::default()
             },
             ..Default::default()
@@ -388,12 +404,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform {
-                translation: Vec3::new(0.0, bounds.y / 2.0, 0.0),
-                scale: Vec3::new(bounds.x + wall_thickness, wall_thickness, 1.0),
+                translation: Vec3::new(0.0, BOUNDS.y / 2.0, 0.0),
+                scale: Vec3::new(1f32, 1f32, 1f32),
                 ..Default::default()
             },
             sprite: Sprite {
                 color: wall_color,
+                custom_size: Some(Vec2::new(BOUNDS.x + wall_thickness, wall_thickness)),
                 ..Default::default()
             },
             ..Default::default()
@@ -408,15 +425,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             .spawn_bundle(SpriteBundle {
                 transform: Transform {
                     translation: Vec3::new(
-                        (bounds.x / 2.0) - 20.0,
-                        (-bounds.y / 2.0) + 48.0 + (row as f32 * space),
+                        (BOUNDS.x / 2.0) - 20.0,
+                        (-BOUNDS.y / 2.0) + 48.0 + (row as f32 * space),
                         0.0,
                     ),
-                    scale: Vec3::new(25.0, 80.0, 0.0),
+                    scale: Vec3::new(1f32, 1f32, 1f32),
                     ..Default::default()
                 },
                 sprite: Sprite {
                     color: Color::rgb(230.0 / 255.0, 184.0 / 255.0, 255.0 / 255.0),
+                    custom_size: Some(Vec2::new(25.0, 80.0)),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -431,15 +449,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             .spawn_bundle(SpriteBundle {
                 transform: Transform {
                     translation: Vec3::new(
-                        (-bounds.x / 2.0) + 20.0,
-                        (-bounds.y / 2.0) + 48.0 + (row as f32 * space),
+                        (-BOUNDS.x / 2.0) + 20.0,
+                        (-BOUNDS.y / 2.0) + 48.0 + (row as f32 * space),
                         0.0,
                     ),
-                    scale: Vec3::new(25.0, 80.0, 0.0),
+                    scale: Vec3::new(1f32, 1f32, 1f32),
                     ..Default::default()
                 },
                 sprite: Sprite {
                     color: Color::rgb(207.0 / 255.0, 194.0 / 255.0, 255.0 / 255.0),
+                    custom_size: Some(Vec2::new(25.0, 80.0)),
                     ..Default::default()
                 },
                 ..Default::default()
@@ -470,6 +489,23 @@ fn paddle1_movement_system(
     if keyboard_input.pressed(KeyCode::Right) {
         xdirection += 1.0;
     }
+
+    let mut rotation_factor = 0.0;
+
+    if keyboard_input.pressed(KeyCode::Numpad2) {
+        rotation_factor += 5.0;
+    }
+
+
+    // create the change in rotation around the Y axis (perpendicular to the 2D plane of the screen)
+    let rotation_delta = Quat::from_rotation_z(rotation_factor * paddle.rotation_speed * TIME_STEP as f32);
+    // let rotation_delta = Quat::from_rotation_z(rotation_factor * paddle.rotation_speed * TIME_STEP);
+    // update the rotation with our rotation delta
+    transform.rotation = rotation_delta;
+
+    // bound the ship within the invisible level BOUNDS
+    let extents = Vec3::from((BOUNDS / 2.0, 0.0));
+    transform.translation = transform.translation.min(extents).max(-extents);
 
     let translation = &mut transform.translation;
     if ydirection != 0.0 {
@@ -511,7 +547,25 @@ fn paddle2_movement_system(
         xdirection += 1.0;
     }
 
+    let mut rotation_factor = 0.0;
+
+    if keyboard_input.pressed(KeyCode::R) {
+        rotation_factor -= 5.0;
+    }
+
+
+    // create the change in rotation around the Y axis (perpendicular to the 2D plane of the screen)
+    let rotation_delta = Quat::from_rotation_z(rotation_factor * paddle.rotation_speed * TIME_STEP as f32);
+    // let rotation_delta = Quat::from_rotation_z(rotation_factor * paddle.rotation_speed * TIME_STEP);
+    // update the rotation with our rotation delta
+    transform.rotation = rotation_delta;
+
+    // bound the ship within the invisible level BOUNDS
+    let extents = Vec3::from((BOUNDS / 2.0, 0.0));
+    transform.translation = transform.translation.min(extents).max(-extents);
+
     let translation = &mut transform.translation;
+
     if ydirection != 0.0 {
         // move the paddle vertically
         translation.y += ydirection * paddle.speed * TIME_STEP;
@@ -547,19 +601,19 @@ fn ball_collision_system(
     mut commands: Commands,
     mut scoreboard: ResMut<Scoreboard>,
     mut ball_query: Query<(&mut Ball, &Transform)>,
-    collider_query: Query<(Entity, &Collider, &Transform)>,
+    collider_query: Query<(Entity, &Collider, &Transform, &Sprite)>,
 ) {
     let (mut ball, ball_transform) = ball_query.single_mut();
     let ball_size = ball_transform.scale.truncate();
     let velocity = &mut ball.velocity;
 
     // check collision with walls
-    for (collider_entity, collider, transform) in collider_query.iter() {
+    for (collider_entity, collider, transform, sprite) in collider_query.iter() {
         let collision = collide(
             ball_transform.translation,
             ball_size,
             transform.translation,
-            transform.scale.truncate(),
+            sprite.custom_size.unwrap(),
         );
         if let Some(collision) = collision {
             // scorable colliders should be despawned and increment the scoreboard on collision
